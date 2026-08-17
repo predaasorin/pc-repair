@@ -1,9 +1,9 @@
-
-
 from app.database import Baza
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Date, Boolean,Numeric
 from sqlalchemy.sql import func
 import enum
+from sqlalchemy.orm import relationship
+
 
 class TipDispozitiv(enum.Enum):
     LAPTOP = "LAPTOP"
@@ -31,6 +31,8 @@ class Clienti(Baza):
     email = Column(String(255), nullable= True)
     creat_la = Column(DateTime(timezone= True), server_default= func.now())
 
+    reparatii = relationship("Reparatii", back_populates="client")
+
 class Reparatii(Baza):
 
     __tablename__ = "reparatii"
@@ -54,6 +56,9 @@ class Reparatii(Baza):
     creat_la = Column(DateTime(timezone=True), server_default=func.now())
     actualizat_la = Column(DateTime(timezone=True), onupdate=func.now())
 
+    client = relationship("Clienti", back_populates="reparatii")
+    evenimente = relationship("EvenimenteReparatie", back_populates="reparatie")
+    oferte = relationship("OfertaPret", back_populates="reparatie")
 
 class EvenimenteReparatie(Baza):
 
@@ -67,6 +72,8 @@ class EvenimenteReparatie(Baza):
     este_public = Column(Boolean, default=False)
     autor = Column(String(120), nullable=True)
     creat_la = Column(DateTime(timezone=True), server_default=func.now(), index= True)
+
+    reparatie = relationship("Reparatii", back_populates="evenimente")
 
 class OfertaPret(Baza):
 
@@ -82,6 +89,7 @@ class OfertaPret(Baza):
     refuzat_la = Column(DateTime(timezone=True), nullable=True)
     creat_la = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
+    reparatie = relationship("Reparatii", back_populates="oferte")
 
 class UtilizatoriAdmin(Baza):
 
