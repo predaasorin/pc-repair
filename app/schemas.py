@@ -72,3 +72,61 @@ class ActualizareReparatie(BaseModel):
     status_reparatie: Optional[str] = None
     data_estimata_finalizata: Optional[date] = None
     descrierea_problemei: Optional[str] = None
+
+
+#Scheme pentru autentificare
+
+class LoginAdmin(BaseModel):
+    email: EmailStr
+    parola: str
+
+class RaspunsToken(BaseModel):
+    access_token: str
+    token_type: str
+
+#scheme pentru  admin
+
+class EvenimentAdmin(BaseModel):
+    id: int
+    status_initial: Optional[str] = None
+    status_actualizat: Optional[str] = None
+    notita:Optional[str] = None
+    este_public: bool
+    creat_la: datetime
+
+    class Config :
+        orm_mode = True
+
+
+class DetaliiReparatieAdmin(BaseModel):
+    id: int
+    cod_urmarire: str
+    status_reparatie: str
+    descrierea_problemei: str
+    evenimente: list[EvenimentAdmin] = []
+    brand: str
+    model: str
+
+    class Config:
+        orm_mode = True
+
+
+class ActualizareStatus(BaseModel):
+    status_nou: str
+
+
+
+class DispozitivReparatieAdmin(BaseModel):
+    id: int
+    cod_urmarire: str
+    status_reparatie: str
+    data_predare: date
+
+    class Config:
+        orm_mode = True
+
+class PaginaReparatii(BaseModel):
+    total: int
+    pagina: int
+    dimensiune_pagina: int
+    reparatii: list[DispozitivReparatieAdmin]

@@ -18,3 +18,10 @@ motor = create_engine(DATABASE_URL)
 SesiuneLocala = sessionmaker( bind = motor)
 
 Baza = declarative_base()
+
+def get_db():
+    db = SesiuneLocala()
+    try:
+        yield db
+    finally:
+        db.close()
