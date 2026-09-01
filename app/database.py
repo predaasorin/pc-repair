@@ -11,7 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL is None:
     raise ValueError("DATABASE_URL nu a fost gasit in fisierul .env!")
 
-print(f"{DATABASE_URL}@*#&&!+++++++++++++++++++++++++++++++++++++++++++++")
+# print(f"{DATABASE_URL}@*#&&!+++++++++++++++++++++++++++++++++++++++++++++")
 motor = create_engine(DATABASE_URL)
 
 

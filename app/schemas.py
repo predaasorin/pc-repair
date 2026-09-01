@@ -24,20 +24,20 @@ class CreareReparatie(BaseModel):
     descrierea_problemei: str
     data_predare: date
 
-#SCHEMA PENTRU RĂSPUNSUL LA CREARE (ce primește clientul la POST /api/repairs)
+#SCHEMA PENTRU RASPUNSUL LA CREARE (ce primeste clientul la POST /api/repairs)
 class CreareReparatieRaspuns(BaseModel):
     tracking_code: str
 
-#SCHEMA PENTRU EVENIMENTELE PUBLICE (Timeline-ul văzut de client)
+#SCHEMA PENTRU EVENIMENTELE PUBLICE (Timeline-ul vazut de client)
 class EvenimentPublicRaspuns(BaseModel):
     status_actualizat: Optional[str] = None
     notita: Optional[str] = None
     creat_la: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# 4. SCHEMA PENTRU OFERTA DE PREȚ (Văzută de client la GET /api/repairs/{code})
+# 4. SCHEMA PENTRU OFERTA DE PRET (Vazuta de client la GET /api/repairs/{code})
 class OfertaPretPublicRaspuns(BaseModel):
     cost_manopera: Decimal
     cost_piese: Decimal
@@ -47,10 +47,10 @@ class OfertaPretPublicRaspuns(BaseModel):
     creat_la: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-#SCHEMA PENTRU RĂSPUNSUL COMPLET LA STATUSUL PUBLIC (GET /api/repairs/{tracking_code})
+#SCHEMA PENTRU RASPUNSUL COMPLET LA STATUSUL PUBLIC (GET /api/repairs/{tracking_code})
 class RaspunsReparatie(BaseModel):
 
 
@@ -65,7 +65,7 @@ class RaspunsReparatie(BaseModel):
     oferte_pret: list[OfertaPretPublicRaspuns] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ActualizareReparatie(BaseModel):
 
@@ -95,7 +95,7 @@ class EvenimentAdmin(BaseModel):
     creat_la: datetime
 
     class Config :
-        orm_mode = True
+        from_attributes = True
 
 
 class DetaliiReparatieAdmin(BaseModel):
@@ -108,7 +108,7 @@ class DetaliiReparatieAdmin(BaseModel):
     model: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ActualizareStatus(BaseModel):
@@ -123,10 +123,37 @@ class DispozitivReparatieAdmin(BaseModel):
     data_predare: date
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PaginaReparatii(BaseModel):
     total: int
     pagina: int
     dimensiune_pagina: int
     reparatii: list[DispozitivReparatieAdmin]
+
+
+#Calendar
+
+class ZiDisponibila(BaseModel):
+    data: date
+    disponibil: bool
+    locuri_libere: int
+
+class RaspunsDisponibilitate(BaseModel):
+    interval: list[ZiDisponibila]
+
+
+#Oferta
+
+class CreareOferta(BaseModel):
+    cost_manopera: Decimal
+    cost_piese: Decimal
+    descriere: str
+
+
+class RaspunsOfertaClient(BaseModel):
+    decizie: str
+
+class CreareNotita(BaseModel):
+    notita: str
+    este_public: bool = False

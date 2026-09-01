@@ -22,7 +22,7 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.execute("COMMIT")
 
-    # Lista cu noile tale stări
+    # Lista cu noile tale stari
     stari_noi = [
         'IN_DIAGNOSTICARE',
         'OFERTA_IN_ASTEPTARE',
@@ -32,7 +32,7 @@ def upgrade() -> None:
         'ANULAT'
     ]
 
-    # Adăugăm fiecare stare în dicționarul bazei de date
+    # Adaugam fiecare stare în dictionarul bazei de date
     for stare in stari_noi:
         op.execute(f"ALTER TYPE statusreparatie ADD VALUE IF NOT EXISTS '{stare}'")
 
