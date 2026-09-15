@@ -1,8 +1,9 @@
 from datetime import date, timedelta
-from sqlalchemy.orm import  Session
-from sqlalchemy import  func
-from app import modele
 
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app import modele
 
 NUMAR_MAXIM_LUCRARI_PE_ZI = 3
 

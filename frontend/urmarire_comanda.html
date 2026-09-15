@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urmărire Reparație</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .detalii { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #fafafa; display: none; }
+        .timeline { margin-top: 20px; }
+        .eveniment { border-left: 3px solid #007bff; padding-left: 15px; margin-bottom: 10px; }
+        .data { font-size: 0.8em; color: #666; }
+
+        /* Stiluri noi pentru zona de oferte */
+        .oferta-box { background-color: #e8f4f8; border: 1px solid #b8daff; margin-bottom: 20px; }
+        .btn-accept { background-color: #28a745; }
+        .btn-accept:hover { background-color: #218838; }
+        .btn-refuz { background-color: #dc3545; }
+        .btn-refuz:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Urmărește Statusul Reparației</h1>
+
+    <label for="trackingCode">Introdu codul tău de urmărire (ex: RPR-ABCD-12):</label>
+    <input type="text" id="trackingCode" placeholder="RPR-...">
+    <button onclick="cautaReparatie()">Verifică Status</button>
+
+    <div id="eroareDiv" style="color: red; display: none; margin-top: 10px; font-weight: bold;"></div>
+
+    <div id="detaliiReparatie" class="detalii">
+        <h2 style="margin-top:0;">Detalii Dispozitiv</h2>
+        <p><strong>Status Curent:</strong> <span id="status" style="color: #007bff; font-weight: bold;"></span></p>
+        <p><strong>Data preluării:</strong> <span id="dataPredare"></span></p>
+
+        <!-- SECȚIUNEA DE OFERTĂ (Ascunsă by default) -->
+        <div id="sectiuneOferta" class="detalii oferta-box">
+            <h3 style="margin-top: 0; color: #004085;">💸 Ofertă de Preț în Așteptare</h3>
+            <p><strong>Descriere lucrare:</strong> <span id="ofertaDescriere"></span></p>
+            <p><strong>Manoperă:</strong> <span id="ofertaManopera"></span> RON</p>
+            <p><strong>Piese:</strong> <span id="ofertaPiese"></span> RON</p>
+            <h3 style="margin: 10px 0;">Total de plată estimat: <span id="ofertaTotal" style="color: #28a745;"></span> RON</h3>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-accept" onclick="raspundeOferta('acceptat')">✅ Acceptă Oferta</button>
+                <button class="btn-refuz" onclick="raspundeOferta('refuzat')">❌ Refuză Oferta</button>
+            </div>
+            <p id="mesajOfertaClient" style="font-weight: bold; margin-top: 10px;"></p>
+        </div>
+
+        <h3>Timeline Reparație:</h3>
+        <div id="timelineLista" class="timeline"></div>
+    </div>
+</div>
+
+<script>
+    async function cautaReparatie() {
+        const cod = document.getElementById('trackingCode').value.trim();
+        const eroareDiv = document.getElementById('eroareDiv');
+        const detaliiDiv = document.getElementById('detaliiReparatie');
+        const sectiuneOferta = document.getElementById('sectiuneOferta');
+        const mesajOferta = document.getElementById('mesajOfertaClient');
+
+        eroareDiv.style.display = 'none';
+        detaliiDiv.style.display = 'none';
+        sectiuneOferta.style.display = 'none';
+        mesajOferta.textContent = "";
+
+        if (!cod) {
+            eroareDiv.textContent = "Te rog să introduci un cod valid.";
+            eroareDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/reparatii/${cod}`);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                document.getElementById('status').textContent = data.status_reparatie;
+                document.getElementById('dataPredare').textContent = data.data_predare;
+
+                // Verificăm dacă există o ofertă în așteptare
+                if (data.status_reparatie === "OFERTA_IN_ASTEPTARE" && data.oferte_pret && data.oferte_pret.length > 0) {
+                    // Găsim oferta activă (care nu a fost încă aprobată sau refuzată)
+                    const ofertaActiva = data.oferte_pret.find(o => !o.aprobat_la && !o.refuzat_la);
+
+                    if (ofertaActiva) {
+                        document.getElementById('ofertaDescriere').textContent = ofertaActiva.descriere;
+                        document.getElementById('ofertaManopera').textContent = parseFloat(ofertaActiva.cost_manopera).toFixed(2);
+                        document.getElementById('ofertaPiese').textContent = parseFloat(ofertaActiva.cost_piese).toFixed(2);
+
+                        const total = parseFloat(ofertaActiva.cost_manopera) + parseFloat(ofertaActiva.cost_piese);
+                        document.getElementById('ofertaTotal').textContent = total.toFixed(2);
+
+                        sectiuneOferta.style.display = 'block';
+                    }
+                }
+
+                // Generăm Timeline-ul
+                const timelineContainer = document.getElementById('timelineLista');
+                timelineContainer.innerHTML = '';
+
+                if(data.evenimente && data.evenimente.length > 0) {
+                    data.evenimente.reverse().forEach(ev => {
+                        let html = `<div class="eveniment">
+                            <strong>${ev.status_actualizat || "Notiță adăugată"}</strong>
+                            <p>${ev.notita || ""}</p>
+                            <span class="data">${new Date(ev.creat_la).toLocaleString()}</span>
+                        </div>`;
+                        timelineContainer.innerHTML += html;
+                    });
+                } else {
+                    timelineContainer.innerHTML = "<p>Niciun eveniment public momentan.</p>";
+                }
+
+                detaliiDiv.style.display = 'block';
+            } else {
+                eroareDiv.textContent = "Cod invalid sau reparație inexistentă.";
+                eroareDiv.style.display = 'block';
+            }
+        } catch (error) {
+            eroareDiv.textContent = "Eroare de comunicare cu serverul.";
+            eroareDiv.style.display = 'block';
+        }
+    }
+
+    async function raspundeOferta(decizie) {
+        const cod = document.getElementById('trackingCode').value.trim();
+        const msgDiv = document.getElementById('mesajOfertaClient');
+        msgDiv.textContent = "Se procesează...";
+
+        try {
+            const response = await fetch(`/api/reparatii/${cod}/oferte/raspuns`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ decizie: decizie })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                msgDiv.style.color = "green";
+                msgDiv.textContent = data.mesaj;
+
+                // Reîncărcăm pagina după 2 secunde pentru a vedea noul status și timeline-ul actualizat
+                setTimeout(() => {
+                    cautaReparatie();
+                }, 2000);
+            } else {
+                msgDiv.style.color = "red";
+                msgDiv.textContent = "Eroare: " + data.detail;
+            }
+        } catch (error) {
+            msgDiv.style.color = "red";
+            msgDiv.textContent = "Eroare de conexiune la server.";
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,7 +1,8 @@
 import os
-import jwt
+from datetime import datetime, timedelta, timezone
+
 import bcrypt
-from datetime import datetime,timedelta,timezone
+import jwt
 
 SECRET_KEY = os.getenv("SECRET_KEY", "cheiesecreta")
 ALGORITHM = "HS256"

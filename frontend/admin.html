@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Angajați - PC Repair</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #e9ecef; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        input, button, select, textarea { padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-success { background-color: #28a745; }
+        .btn-danger { background-color: #dc3545; width: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #343a40; color: white; }
+        tr:hover { background-color: #f1f1f1; cursor: pointer; }
+
+        #loginSection, #dashboardSection, #adminControls, #modalActiuni { display: none; }
+
+        /* Modal extins */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; display: flex; gap: 20px; flex-wrap: wrap;}
+        .col { flex: 1; min-width: 300px; }
+        .section-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6; }
+        .close-btn { background: #6c757d; float: right; margin-top: -10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="titluDashboard">🔐 Autentificare Angajați</h1>
+
+    <div id="loginSection">
+        <input type="email" id="email" placeholder="Email angajat" style="width: 100%;">
+        <input type="password" id="parola" placeholder="Parolă" style="width: 100%;">
+        <button class="btn" onclick="login()">Intră în cont</button>
+        <p id="loginEroare" style="color: red;"></p>
+    </div>
+
+    <div id="dashboardSection">
+        <button class="btn btn-danger" onclick="logout()" style="float: right;">Delogare</button>
+
+        <div id="adminControls" style="background: #e2e3e5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3>🛠️ Controale Administrator</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="email" id="nouEmail" placeholder="Email tehnician nou" style="flex: 1;">
+                <input type="password" id="nouParola" placeholder="Parolă" style="flex: 1;">
+                <button class="btn" onclick="creeazaTehnician()" style="flex: 1;">+ Adaugă Tehnician</button>
+            </div>
+            <p id="adminMesaj" style="margin-bottom: 0;"></p>
+        </div>
+
+        <h2>Lista Reparațiilor Active (Click pe rând pentru acțiuni)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID / Cod</th>
+                    <th>Status</th>
+                    <th>Data Predare</th>
+                </tr>
+            </thead>
+            <tbody id="tabelReparatii"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL GESTIUNE COMANDĂ -->
+<div id="modalActiuni" class="modal">
+    <div class="modal-content">
+        <div style="width: 100%; margin-bottom: 15px;">
+            <button class="btn btn-danger close-btn" onclick="inchideModal()">❌ Închide</button>
+            <h2 id="modalTitlu" style="margin-top: 0;">Detalii Comandă</h2>
+        </div>
+
+        <!-- Coloana Stânga: Detalii și Status -->
+        <div class="col">
+            <div class="section-box">
+                <h3>📌 Detalii Dispozitiv</h3>
+                <p><strong>Brand/Model:</strong> <span id="detaliiDispozitiv">Incarcare...</span></p>
+                <p><strong>Defect reclamat:</strong> <span id="detaliiDefect">Incarcare...</span></p>
+                <p><strong>Status Curent:</strong> <span id="detaliiStatus" style="font-weight: bold; color: #007bff;">Incarcare...</span></p>
+            </div>
+
+            <div class="section-box">
+                <h3>🔄 Schimbă Statusul</h3>
+                <select id="nouStatus" style="width: 100%;">
+                    <option value="IN_DIAGNOSTICARE">IN_DIAGNOSTICARE</option>
+                    <option value="OFERTA_IN_ASTEPTARE">OFERTA_IN_ASTEPTARE</option>
+                    <option value="IN_LUCRU">IN_LUCRU</option>
+                    <option value="ASTEPTARE_PIESE">ASTEPTARE_PIESE</option>
+                    <option value="PREGATIT_PENTRU_RIDICARE">PREGATIT_PENTRU_RIDICARE</option>
+                    <option value="RIDICAT">RIDICAT</option>
+                    <option value="ANULAT">ANULAT</option>
+                </select>
+                <button class="btn btn-success" onclick="schimbaStatus()">Actualizează Status</button>
+                <p id="mesajStatus" style="font-size: 0.9em;"></p>
+            </div>
+
+            <div class="section-box">
+                <h3>💰 Ofertează Clientul</h3>
+                <p style="font-size: 0.8em; color: #666;">(Acțiunea va schimba statusul în OFERTA_IN_ASTEPTARE)</p>
+                <input type="number" id="costManopera" placeholder="Cost Manoperă (RON)" style="width: 100%;">
+                <input type="number" id="costPiese" placeholder="Cost Piese (RON)" style="width: 100%;">
+                <textarea id="descriereOferta" placeholder="Descriere ofertă (ex: Baterie nouă + Montaj)" rows="2" style="width: 100%;"></textarea>
+                <button class="btn btn-success" onclick="trimiteOferta()">Trimite Oferta</button>
+                <p id="mesajOferta" style="font-size: 0.9em;"></p>
+            </div>
+        </div>
+
+        <!-- Coloana Dreapta: Notițe / Timeline -->
+        <div class="col">
+            <div class="section-box">
+                <h3>📝 Adaugă Notiță</h3>
+                <textarea id="textNotita" placeholder="Scrie o notiță legată de reparație..." rows="3" style="width: 100%;"></textarea>
+                <label>
+                    <input type="checkbox" id="estePublica"> Vizibilă pentru client? (Timeline public)
+                </label>
+                <button class="btn" style="margin-top: 10px;" onclick="adaugaNotita()">Salvează Notiță</button>
+                <p id="mesajNotita" style="font-size: 0.9em;"></p>
+            </div>
+
+            <div class="section-box">
+                <h3>📜 Istoric Notițe</h3>
+                <div id="listaNotite" style="max-height: 250px; overflow-y: auto; font-size: 0.9em;">
+                    <!-- Notițele vor fi injectate aici -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let curentReparatieId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("token_angajat");
+        if (token) initializeazaDashboard(token);
+        else document.getElementById("loginSection").style.display = "block";
+    });
+
+    function extrageRolDinToken(token) {
+        try { return JSON.parse(atob(token.split('.')[1])).rol; }
+        catch(e) { return null; }
+    }
+
+    async function login() {
+        const email = document.getElementById("email").value;
+        const parola = document.getElementById("parola").value;
+
+        const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, parola })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem("token_angajat", data.access_token);
+            initializeazaDashboard(data.access_token);
+        } else {
+            document.getElementById("loginEroare").textContent = "Email sau parolă incorecte!";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("token_angajat");
+        location.reload();
+    }
+
+    async function initializeazaDashboard(token) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("dashboardSection").style.display = "block";
+
+        const rol = extrageRolDinToken(token);
+        document.getElementById("titluDashboard").textContent = rol === "ADMIN" ? "👨‍💼 Dashboard Administrator" : "👨‍🔧 Dashboard Tehnician";
+        if (rol === "ADMIN") document.getElementById("adminControls").style.display = "block";
+
+        incarcaTabel(token);
+    }
+
+    async function incarcaTabel(token) {
+        const res = await fetch("/api/tehnician/reparatii", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const date = await res.json();
+            const tbody = document.getElementById("tabelReparatii");
+            tbody.innerHTML = "";
+            date.reparatii.forEach(rep => {
+                tbody.innerHTML += `
+                    <tr onclick="deschideModal('${rep.id}', '${rep.cod_urmarire}')">
+                        <td><strong>${rep.id}</strong> <br> <small>${rep.cod_urmarire}</small></td>
+                        <td>${rep.status_reparatie}</td>
+                        <td>${rep.data_predare}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    async function creeazaTehnician() {
+        const email = document.getElementById("nouEmail").value;
+        const parola = document.getElementById("nouParola").value;
+        const token = localStorage.getItem("token_angajat");
+
+        const res = await fetch("/api/admin/tehnicieni", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ email, parola })
+        });
+
+        const data = await res.json();
+        document.getElementById("adminMesaj").style.color = res.ok ? "green" : "red";
+        document.getElementById("adminMesaj").textContent = res.ok ? "✅ " + data.mesaj : "❌ Eroare la creare.";
+    }
+
+    async function deschideModal(id, cod) {
+        curentReparatieId = id;
+        document.getElementById("modalTitlu").textContent = `Cod: ${cod} (ID: ${id})`;
+
+        // Resetam mesajele
+        document.getElementById("mesajStatus").textContent = "";
+        document.getElementById("mesajNotita").textContent = "";
+        document.getElementById("mesajOferta").textContent = "";
+
+        document.getElementById("modalActiuni").style.display = "flex";
+        await incarcaDetaliiComanda(id);
+    }
+
+    function inchideModal() {
+        document.getElementById("modalActiuni").style.display = "none";
+        incarcaTabel(localStorage.getItem("token_angajat")); // Refresh tabel la inchidere
+    }
+
+    async function incarcaDetaliiComanda(id) {
+        const token = localStorage.getItem("token_angajat");
+        const res = await fetch(`/api/tehnician/reparatii/${id}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if(res.ok) {
+            const data = await res.json();
+            document.getElementById("detaliiDispozitiv").textContent = `${data.brand} ${data.model}`;
+            document.getElementById("detaliiDefect").textContent = data.descrierea_problemei;
+            document.getElementById("detaliiStatus").textContent = data.status_reparatie;
+
+            // Incarcare istoric notite
+            const lista = document.getElementById("listaNotite");
+            lista.innerHTML = "";
+            if(data.evenimente && data.evenimente.length > 0) {
+                data.evenimente.reverse().forEach(ev => {
+                    const vizibilitate = ev.este_public ? "🌍 Public" : "🔒 Intern";
+                    lista.innerHTML += `
+                        <div style="border-bottom: 1px solid #ddd; padding: 5px 0;">
+                            <strong>${ev.status_actualizat || ''}</strong> <span style="float:right; font-size: 0.8em; color: #666;">${vizibilitate}</span><br>
+                            ${ev.notita || '<em>Fără notiță text</em>'}<br>
+                            <small style="color:#999;">${new Date(ev.creat_la).toLocaleString()}</small>
+                        </div>
+                    `;
+                });
+            } else {
+                lista.innerHTML = "Nu există evenimente înregistrate.";
+            }
+        }
+    }
+
+    async function schimbaStatus() {
+        const statusNou = document.getElementById("nouStatus").value;
+        const token = localStorage.getItem("token_angajat");
+        const msg = document.getElementById("mesajStatus");
+
+        const res = await fetch(`/api/tehnician/reparatii/${curentReparatieId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ status_nou: statusNou })
+        });
+
+        if(res.ok) {
+            msg.style.color = "green"; msg.textContent = "Status actualizat!";
+            await incarcaDetaliiComanda(curentReparatieId);
+        } else {
+            const data = await res.json();
+            msg.style.color = "red"; msg.textContent = "Eroare: " + data.detail;
+        }
+    }
+
+    async function adaugaNotita() {
+        const notita = document.getElementById("textNotita").value;
+        const este_public = document.getElementById("estePublica").checked;
+        const token = localStorage.getItem("token_angajat");
+        const msg = document.getElementById("mesajNotita");
+
+        const res = await fetch(`/api/tehnician/reparatii/${curentReparatieId}/evenimente`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ notita: notita, este_public: este_public })
+        });
+
+        if(res.ok) {
+            msg.style.color = "green"; msg.textContent = "Notiță adăugată!";
+            document.getElementById("textNotita").value = "";
+            await incarcaDetaliiComanda(curentReparatieId);
+        } else {
+            const data = await res.json();
+            msg.style.color = "red"; msg.textContent = "Eroare: " + data.detail;
+        }
+    }
+
+    async function trimiteOferta() {
+        const manopera = parseFloat(document.getElementById("costManopera").value);
+        const piese = parseFloat(document.getElementById("costPiese").value);
+        const descriere = document.getElementById("descriereOferta").value;
+        const token = localStorage.getItem("token_angajat");
+        const msg = document.getElementById("mesajOferta");
+
+        if(!manopera || !descriere) {
+            msg.style.color = "red"; msg.textContent = "Completează suma și descrierea!"; return;
+        }
+
+        const res = await fetch(`/api/tehnician/reparatii/${curentReparatieId}/oferta`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ cost_manopera: manopera, cost_piese: piese || 0, descriere: descriere })
+        });
+
+        if(res.ok) {
+            msg.style.color = "green"; msg.textContent = "Ofertă trimisă cu succes!";
+            document.getElementById("costManopera").value = "";
+            document.getElementById("costPiese").value = "";
+            document.getElementById("descriereOferta").value = "";
+            await incarcaDetaliiComanda(curentReparatieId);
+        } else {
+            const data = await res.json();
+            msg.style.color = "red"; msg.textContent = "Eroare: " + data.detail;
+        }
+    }
+</script>
+
+</body>
+</html>

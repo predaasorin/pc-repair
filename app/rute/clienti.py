@@ -1,13 +1,19 @@
-from time import timezone
+from datetime import date, datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app import schemas
 from app.database import get_db
-from app.modele import Clienti, Reparatii, StatusReparatie, EvenimenteReparatie
-from app.schemas import CreareReparatieRaspuns, CreareReparatie, RaspunsReparatie, RaspunsOfertaClient
-from app.utils import genereaza_cod_urmarire
-from datetime import  date, datetime,timezone
+from app.modele import Clienti, EvenimenteReparatie, Reparatii, StatusReparatie
+from app.schemas import (
+    CreareReparatie,
+    CreareReparatieRaspuns,
+    RaspunsOfertaClient,
+    RaspunsReparatie,
+)
 from app.services import disponibilitate_service
+from app.utils import genereaza_cod_urmarire
 
 ruta_clienti = APIRouter(prefix= "/api/reparatii", tags=["Clienti"])
 
@@ -44,6 +50,9 @@ def creare_reparatie(reparatie_input:CreareReparatie, db: Session = Depends(get_
         db.commit()
         db.refresh(client)
 
+    if reparatie_input.data_predare < date.today():
+        raise HTTPException(status_code=400, detail="Nu poti programa  o reparatie intr-o data din trecut")
+
     if reparatie_input.data_predare.weekday() == 6:
         raise  HTTPException(status_code=400, detail="Magazinul este inchis duminica. Te rugam sa alegi  o alta zi pentru predare")
 
@@ -73,7 +82,7 @@ def creare_reparatie(reparatie_input:CreareReparatie, db: Session = Depends(get_
     db.add(reparatie)
     db.commit()
 
-    return {"tracking_code": cod_nou}
+    return {"cod_urmarire": cod_nou}
 
 
 @ruta_clienti.post("/{cod_urmarire}/oferte/raspuns")
@@ -108,7 +117,7 @@ def raspunde_la_oferta(
     elif raspuns.decizie == "refuzat":
         oferta_activa.refuzat_la = timp_curent
         reparatie.status_reparatie = StatusReparatie.PREGATIT_PENTRU_RIDICARE
-        mesaj_notita = "Clientul a refuzat oferta de pret. Dispozitivul este pregatit pentru  a fi ridicat nereparat."
+        mesaj_notita = "Clientul a refuzat oferta de pret. Dispozitivul este pregatit pentru  a fi ridicat nereparat. Asteptati informatiile tehnicianului ."
 
     else:
         raise HTTPException(status_code=400, detail="Decizie invalida, alege intre acceptat sau refuzat")

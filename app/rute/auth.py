@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.database import  get_db
 from sqlalchemy.orm import Session
-from app.schemas import RaspunsToken, LoginAdmin
+
+from app.database import get_db
 from app.modele import UtilizatoriAdmin
+from app.schemas import LoginAdmin, RaspunsToken
 from app.services import auth_service
 
 ruta_login = APIRouter(prefix="/api/auth", tags=["Autentificare"])

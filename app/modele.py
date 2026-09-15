@@ -1,8 +1,21 @@
-from app.database import Baza
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Date, Boolean,Numeric
-from sqlalchemy.sql import func
 import enum
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.database import Baza
 
 
 class TipDispozitiv(enum.Enum):

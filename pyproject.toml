@@ -1,0 +1,3 @@
+[tool.ruff]
+# Ignoram eroarea cu Depends() din FastAPI si permisiunile de Windows
+lint.ignore = ["B008", "EXE002"]

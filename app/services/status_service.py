@@ -1,6 +1,5 @@
 from app.modele import StatusReparatie
 
-
 TRANZITII_FINALE = {
     StatusReparatie.PRIMIT : {StatusReparatie.IN_DIAGNOSTICARE, StatusReparatie.ANULAT},
     StatusReparatie.IN_DIAGNOSTICARE : {StatusReparatie.OFERTA_IN_ASTEPTARE, StatusReparatie.ANULAT},

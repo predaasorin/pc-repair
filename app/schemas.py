@@ -1,8 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field
 from datetime import date, datetime
-from typing import Optional
-from enum import Enum
 from decimal import Decimal
+from enum import Enum
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class TipDispozitiv(str, Enum):
@@ -16,22 +16,22 @@ class CreareReparatie(BaseModel):
 
     nume: str = Field(..., max_length=120)
     telefon: str = Field(..., max_length=30)
-    email: Optional[EmailStr] = Field(None, max_length=255)
+    email: EmailStr | None = Field(None, max_length=255)
     tip_dispozitiv: TipDispozitiv
     brand: str = Field(..., max_length=60)
     model: str = Field(..., max_length=80)
-    numar_serie: Optional[str] = Field(None, max_length=80)
+    numar_serie: str | None = Field(None, max_length=80)
     descrierea_problemei: str
     data_predare: date
 
 #SCHEMA PENTRU RASPUNSUL LA CREARE (ce primeste clientul la POST /api/repairs)
 class CreareReparatieRaspuns(BaseModel):
-    tracking_code: str
+    cod_urmarire: str
 
 #SCHEMA PENTRU EVENIMENTELE PUBLICE (Timeline-ul vazut de client)
 class EvenimentPublicRaspuns(BaseModel):
-    status_actualizat: Optional[str] = None
-    notita: Optional[str] = None
+    status_actualizat: str | None = None
+    notita: str | None = None
     creat_la: datetime
 
     class Config:
@@ -42,8 +42,8 @@ class OfertaPretPublicRaspuns(BaseModel):
     cost_manopera: Decimal
     cost_piese: Decimal
     descriere: str
-    aprobat_la: Optional[datetime] = None
-    refuzat_la: Optional[datetime] = None
+    aprobat_la: datetime | None = None
+    refuzat_la: datetime | None = None
     creat_la: datetime
 
     class Config:
@@ -57,9 +57,9 @@ class RaspunsReparatie(BaseModel):
     cod_urmarire: str
     status_reparatie: str
     data_predare: date
-    data_estimata_finalizata: Optional[date]
+    data_estimata_finalizata: date | None
     creat_la: datetime
-    actualizat_la: Optional[datetime] = None
+    actualizat_la: datetime | None = None
 
     evenimente: list[EvenimentPublicRaspuns] = []
     oferte_pret: list[OfertaPretPublicRaspuns] = []
@@ -69,9 +69,9 @@ class RaspunsReparatie(BaseModel):
 
 class ActualizareReparatie(BaseModel):
 
-    status_reparatie: Optional[str] = None
-    data_estimata_finalizata: Optional[date] = None
-    descrierea_problemei: Optional[str] = None
+    status_reparatie: str | None = None
+    data_estimata_finalizata: date | None = None
+    descrierea_problemei: str | None = None
 
 
 #Scheme pentru autentificare
@@ -88,9 +88,9 @@ class RaspunsToken(BaseModel):
 
 class EvenimentAdmin(BaseModel):
     id: int
-    status_initial: Optional[str] = None
-    status_actualizat: Optional[str] = None
-    notita:Optional[str] = None
+    status_initial: str | None = None
+    status_actualizat: str | None = None
+    notita:str | None = None
     este_public: bool
     creat_la: datetime
 
@@ -157,3 +157,9 @@ class RaspunsOfertaClient(BaseModel):
 class CreareNotita(BaseModel):
     notita: str
     este_public: bool = False
+
+# Creare Tehnician
+
+class CreareTehnician(BaseModel):
+    email: EmailStr
+    parola: str

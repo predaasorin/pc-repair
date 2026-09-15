@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reparații PC - Cerere Noua</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input, select, textarea, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #28a745; color: white; border: none; font-size: 16px; cursor: pointer; margin-top: 20px; font-weight: bold; }
+        button:hover { background-color: #218838; }
+        .mesaj { margin-top: 20px; padding: 15px; display: none; border-radius: 4px; text-align: center; font-weight: bold; }
+        .succes { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .eroare { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Trimite Dispozitivul in Service</h1>
+
+    <form id="formularReparatie">
+        <label for="nume">Nume complet *</label>
+        <input type="text" id="nume" required>
+
+        <label for="telefon">Telefon *</label>
+        <input type="tel" id="telefon" required>
+
+        <label for="tip_dispozitiv">Tip Dispozitiv *</label>
+        <select id="tip_dispozitiv" required>
+            <option value="LAPTOP">Laptop</option>
+            <option value="DESKTOP">PC Desktop</option>
+            <option value="ALL_IN_ONE">All in One</option>
+            <option value="ALTUL">Altul</option>
+        </select>
+
+        <label for="brand">Brand *</label>
+        <input type="text" id="brand" placeholder="ex: Asus, Dell, Apple" required>
+
+        <label for="model">Model *</label>
+        <input type="text" id="model" required>
+
+        <label for="descrierea_problemei">Descrie problema pe scurt *</label>
+        <textarea id="descrierea_problemei" rows="4" required></textarea>
+
+        <label for="data_predare">Data la care doresti sa il aduci *</label>
+        <input type="date" id="data_predare" required>
+
+        <button type="submit">Trimite Cererea</button>
+    </form>
+
+    <div id="mesajDiv" class="mesaj"></div>
+</div>
+
+<script>
+    // 1. GESTIONAREA CALENDARULUI
+    const inputData = document.getElementById('data_predare');
+    const azi = new Date();
+
+    // Formatăm data curentă în YYYY-MM-DD pentru a o folosi ca "min" în calendar
+    const aziString = azi.toISOString().split('T')[0];
+    inputData.min = aziString; // Blochează vizual datele din trecut
+
+    let dateIndisponibile = [];
+
+    // Funcție care aduce de la server zilele fără locuri libere (sau Duminicile)
+    async function incarcaDisponibilitate() {
+        const viitor = new Date(azi);
+        viitor.setDate(viitor.getDate() + 60); // Verificăm pe 2 luni în avans
+        const viitorString = viitor.toISOString().split('T')[0];
+
+        try {
+            const res = await fetch(`/api/reparatii/disponibilitate?de_la_data=${aziString}&pana_la_data=${viitorString}`);
+            if (res.ok) {
+                const data = await res.json();
+                // Extragem doar datele unde 'disponibil' este false
+                dateIndisponibile = data.interval
+                    .filter(zi => zi.disponibil === false)
+                    .map(zi => zi.data);
+            }
+        } catch (e) {
+            console.error("Eroare la încărcarea disponibilității:", e);
+        }
+    }
+
+    incarcaDisponibilitate();
+
+    // Validăm în timp real ce alege utilizatorul
+    inputData.addEventListener('change', (e) => {
+        const dataSelectata = e.target.value;
+        const d = new Date(dataSelectata);
+
+        // Verificăm dacă este Duminică (0) sau dacă e în lista celor full
+        if (d.getDay() === 0 || dateIndisponibile.includes(dataSelectata)) {
+            alert("⚠️ Această dată nu este disponibilă (este Duminică sau am atins capacitatea maximă de 3 echipamente). Te rugăm să alegi o altă zi!");
+            e.target.value = ""; // Golim selecția greșită
+        }
+    });
+
+    // 2. TRIMITEREA FORMULARULUI
+    document.getElementById('formularReparatie').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const mesajDiv = document.getElementById('mesajDiv');
+        mesajDiv.style.display = 'none';
+
+        const payload = {
+            nume: document.getElementById('nume').value,
+            telefon: document.getElementById('telefon').value,
+            tip_dispozitiv: document.getElementById('tip_dispozitiv').value,
+            brand: document.getElementById('brand').value,
+            model: document.getElementById('model').value,
+            descrierea_problemei: document.getElementById('descrierea_problemei').value,
+            data_predare: document.getElementById('data_predare').value
+        };
+
+        try {
+            const response = await fetch('/api/reparatii', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Modificat aici: data.cod_urmarire în loc de data.tracking_code
+                mesajDiv.textContent = `Succes! Codul tău de urmărire este: ${data.cod_urmarire}. Notează-l!`;
+                mesajDiv.className = 'mesaj succes';
+                mesajDiv.style.display = 'block';
+                document.getElementById('formularReparatie').reset();
+
+                // Reîmprospătăm disponibilitatea (poate chiar acum s-a ocupat ultimul loc pe acea zi)
+                incarcaDisponibilitate();
+            } else {
+                if (Array.isArray(data.detail)) {
+                    const erori = data.detail.map(err => `Câmpul "${err.loc[err.loc.length - 1]}": ${err.msg}`).join('<br>');
+                    mesajDiv.innerHTML = `Date invalide:<br>${erori}`;
+                } else {
+                    mesajDiv.textContent = data.detail || 'Eroare necunoscută.';
+                }
+                mesajDiv.className = 'mesaj eroare';
+                mesajDiv.style.display = 'block';
+            }
+        } catch (error) {
+            mesajDiv.textContent = 'Eroare de conexiune la server.';
+            mesajDiv.className = 'mesaj eroare';
+            mesajDiv.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>
